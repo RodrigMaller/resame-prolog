@@ -36,7 +36,10 @@
 %  ou sem-solucao se o jogo n√£o tem solu√ß√£o.
 
 main(File) :-
-    writeln(File), fail.
+    read_matriz_file(File, M),
+    transpose(M, Same),
+    solve(Same, Moves).
+    writeln(Moves).
 
 %% solve(+Same, -Moves) is nondet
 %
@@ -60,7 +63,9 @@ solve(Same, [M|Moves]) :-
 %  auxiliares.
 
 group(Same, Group) :-
-    writeln([Same, Group]), fail.
+    length(Same, NumLin),
+    get_pos(),
+    make_groups().
 
 %% grupo(+Same, +P, -Group) is semidet
 %
@@ -76,5 +81,48 @@ group(Same, P, Group) :-
 %  Dica:
 %    - crie um predicado auxiliar remove_column_group, que remove os elementos
 %    de uma coluna espec√≠fica
+
 remove_group(Same, Group, NewSame) :-
-    writeln([Same, Group, NewSame]), fail.
+    length(Same, NumCol),
+    remove_column_group(Same, 0, NumCol, Group, NewSame).
+
+%% remove_column_group(+Same, +Column, +NumberOfColumns, +Group, -NewSame) is semidet
+%
+%  Verdadeiro se NewSame È obtido de Same removendo os elementos
+%  especificados em Group e que est„o na em cada elem da ListColumn
+
+remove_column_group(Same, X, X, _, []).
+
+remove_column_group(Same, Col, NumCol, Group, [NewColumn | OtherColumn]) :-
+    Col < NumCol,
+    findall(X, member(pos(X, Col), Group), ListRows),
+    ListRows = [],
+    nth0(Col, Same, NewColumn),
+    NextCol is Col + 1,
+    [NewColumn | _] = [NewColumn],
+    remove_column_group(Same, NextCol, NumCol, Group, OtherColumn).
+
+remove_column_group(Same, Col, NumCol, Group, [NewColumn | OtherColumn]) :-
+    Col < NumCol,
+    findall(X, member(pos(X, Col), Group), ListRows),
+    ListRows \= [],
+    nth0(Col, Same, Column),
+    remove_row_column(Column, ListRows, NewColumn),
+    NewColumn \= [],
+    [NewColumn | _] = [NewColumn],
+    NextCol is Col + 1,
+    remove_column_group(Same, NextCol, NumCol, Group, OtherColumn).
+    
+
+%% remove_row_column(+Column, +ListRow, -NewColumn) is semidet
+%  
+%  Verdadeiro se NewColumn È obtido de Column removendo o elemento
+%  especificado em Row da Column
+
+remove_row_column(Column, [], Column).
+
+remove_row_column(Column, [Row | Rest], NewColumn) :-
+    selectchk(Row, Column, NewColumn),
+    remove_pos(NewColumn, Rest, RecursiveNewColumn).
+    
+

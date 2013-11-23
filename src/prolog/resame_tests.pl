@@ -42,7 +42,7 @@ test(group, set(G == [[pos(0,0), pos(1,0), pos(1,1), pos(1,2), pos(2,0)],
                       [pos(0,1), pos(0,2)]])) :-
     group([[2, 2, 2], [3, 2, 1], [3, 2, 3], [1, 3, 1]], H),
     sort(H, G)
-    %, write(G), nl % se o teste estiver falhando, você pode
+    , write(G), nl % se o teste estiver falhando, você pode
     .               % remover este comentario para imprimir a resposta e ver o
                     % que esta errado.
 
