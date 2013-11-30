@@ -63,9 +63,7 @@ solve(Same, [M|Moves]) :-
 %  auxiliares.
 
 group(Same, Group) :-
-    length(Same, NumLin),
-    get_pos(),
-    make_groups().
+    length(Same, NumLin).
 
 %% grupo(+Same, +P, -Group) is semidet
 %
@@ -83,46 +81,43 @@ group(Same, P, Group) :-
 %    de uma coluna espec√≠fica
 
 remove_group(Same, Group, NewSame) :-
-    length(Same, NumCol),
-    remove_column_group(Same, 0, NumCol, Group, NewSame).
+    length(Same, SameSize),
+    NumCol is SameSize - 1,
+    remove_column_group(Same, NumCol, Group, NSame),
+    reverse(NSame, NewSame).
 
-%% remove_column_group(+Same, +Column, +NumberOfColumns, +Group, -NewSame) is semidet
+%% remove_column_group(+Same, +Column, +Group, -NewSame) is semidet
 %
 %  Verdadeiro se NewSame È obtido de Same removendo os elementos
-%  especificados em Group e que est„o na em cada elem da ListColumn
+%  especificados em Group e que est„o na Column.
 
-remove_column_group(Same, X, X, _, []).
+remove_column_group(Same, -1, _, []).
 
-remove_column_group(Same, Col, NumCol, Group, [NewColumn | OtherColumn]) :-
-    Col < NumCol,
-    findall(X, member(pos(X, Col), Group), ListRows),
-    ListRows = [],
-    nth0(Col, Same, NewColumn),
-    NextCol is Col + 1,
-    [NewColumn | _] = [NewColumn],
-    remove_column_group(Same, NextCol, NumCol, Group, OtherColumn).
-
-remove_column_group(Same, Col, NumCol, Group, [NewColumn | OtherColumn]) :-
-    Col < NumCol,
-    findall(X, member(pos(X, Col), Group), ListRows),
-    ListRows \= [],
+remove_column_group(Same, Col, Group, NewSame) :-
+    findall(X, member(pos(X, Col),  Group), ListRow),
     nth0(Col, Same, Column),
-    remove_row_column(Column, ListRows, NewColumn),
+    remove_rows_column(Column, ListRow, NewColumn),
+    NewColumn = [],
+    NextCol is Col -1,
+    remove_column_group(Same, Nextcol, Group, NewSame), !.
+
+remove_column_group(Same, Col, Group, [HeadColumn | RestColumn]) :-
+    findall(X, member(pos(X, Col), Group), ListRow),
+    nth0(Col, Same, Column),
+    remove_rows_column(Column, ListRow, NewColumn),
     NewColumn \= [],
-    [NewColumn | _] = [NewColumn],
-    NextCol is Col + 1,
-    remove_column_group(Same, NextCol, NumCol, Group, OtherColumn).
-    
+    [HeadColumn | _] = [NewColumn],
+    NextCol is Col - 1,
+    remove_column_group(Same, NextCol, Group, RestColumn), !.
 
-%% remove_row_column(+Column, +ListRow, -NewColumn) is semidet
-%  
-%  Verdadeiro se NewColumn È obtido de Column removendo o elemento
-%  especificado em Row da Column
+%% remove_rows_column(+Column, +Rows, -NewColumn) is semidet
+%
+%  Verdadeiro se NewColumn È obtido de Column removendo os elementos
+%  de Rows.
 
-remove_row_column(Column, [], Column).
+remove_rows_column(Column, [], Column).
 
-remove_row_column(Column, [Row | Rest], NewColumn) :-
-    selectchk(Row, Column, NewColumn),
-    remove_pos(NewColumn, Rest, RecursiveNewColumn).
-    
+remove_rows_column(Column, [Row | Rest], NewColumn) :-
+    nth0(Row, Column, _, OtherColumn),
+    remove_rows_column(OtherColumn, Rest, NewColumn), !.
 
