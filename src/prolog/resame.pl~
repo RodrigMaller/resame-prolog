@@ -90,7 +90,7 @@ same_color_neighbors(Same,P,N) :-
     color(Same,N,C).
 
 neighborhood(Same,Ns,N) :-    
-    map(Ns,Ns0,).
+    map(Ns,Ns0).
 
 %% grupo(+Same, +P, -Group) is semidet
 %
