@@ -89,17 +89,33 @@ same_color_neighbors(Same,P,N) :-
     color(Same,P,C),
     color(Same,N,C).
 
-neighborhood(Same,Ns,N) :-    
-    map(Ns,Ns0,).
+
+same_color_neighbors_list(Same,P,Vs,Ns) :-
+    findall(N,(same_color_neighbors(Same,P,N),\+member(N,Vs)), Ns).
+
+nhood(_, [], _, []).
+
+nhood(Same,[P|T],Vs,Group) :-
+    same_color_neighbors_list(Same,P,Vs,Ns),
+    append(Vs,Ns,NewVs),    
+    append(T,Ns,NewT),
+    nhood(Same,NewT,NewVs,SubGroup),
+    append(Ns,SubGroup,Group).
 
 %% grupo(+Same, +P, -Group) is semidet
 %
 %  Verdadeiro se Group é um grupo de Same que contém a posição P.
 
 group(Same, P, Group) :-
-    findall(N,(same_color_neighbors(Same,P,N)), Pneighbors),
-    neighborhood(Same,Pneighbors,Gx),
-    Group = Gx.
+    Vs = [P],
+    nhood(Same,Vs,Vs,SubGroup),
+    SubGroup \== [],
+    append(Vs,SubGroup,Group).
+    
+    
+%    findall(N,(same_color_neighbors(Same,P,N)), Pneighbors),
+ %   neighborhood(Same,Gx),
+  %  Group = Gx.o
 
 %% remove_group(+Same, +Group, -NewSame) is semidet
 %
@@ -149,4 +165,5 @@ remove_rows_column(Column, [], Column).
 remove_rows_column(Column, [Row | Rest], NewColumn) :-
     nth0(Row, Column, _, OtherColumn),
     remove_rows_column(OtherColumn, Rest, NewColumn), !.
+
 
