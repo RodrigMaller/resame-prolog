@@ -63,11 +63,22 @@ solve(Same, [M|Moves]) :-
 %  auxiliares.
 
 group(Same, Group) :-
-    %color(Same, pos(X, Y), Color),
-    group(Same, pos(1, 1), NewGroup),
+    color(Same, pos(X, Y), Color),
+    group(Same, pos(X, Y), NewGroup),
+    zero_group(Same, Group, NewSame),
     length(NewGroup, NumPosGroup),
     NumPosGroup > 1,
     Group = NewGroup.
+
+zero_group(Same, [], Same).
+
+zero_group(Same, [pos(Col, Row) | T], NewSame) :-
+    nth0(Col, Same, Column),
+    nth0(Row, Column, _, Other),
+    nth0(Row, OtherColumn, 0, NewColumn),
+    nth0(Col, Same, _, OtherSame),
+    nth0(Col, OtherSame, NewColumn, AnotherSame),
+    zero_group(AnotherSame, T, NewSame), !.
 
 %% grupo(+Same, +P, -Group) is semidet
 %
@@ -98,7 +109,7 @@ same_color_neighbors_list(Same,P,Vs,Ns) :-
 
 color(Same,pos(X,Y),Color) :-
     nth0(Y,Same,Column),
-    nth0(X,Column,Color).
+    nth0(X, Column, _, OtherColumn).
 
 %left right
 neighbors(pos(X0,Y0), pos(X1,Y1)):-

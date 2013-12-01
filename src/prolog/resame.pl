@@ -68,11 +68,18 @@ group(Same, Group) :-
     zero_group(Same, Group, NewSame),
     length(NewGroup, NumPosGroup),
     NumPosGroup > 1,
-    Group = NewGroup.
+    Group = NewGroup,
+    
 
-zero_group(Same, [pos(X, Y) | T], NewSame) :-
-    nth0(Y, Same, Column),
-    nth0(X, Column, Color)
+zero_group(Same, [], Same).
+
+zero_group(Same, [pos(Col, Row) | T], NewSame) :-
+    nth0(Col, Same, Column),
+    nth0(Row, Column, _, Other),
+    nth0(Row, OtherColumn, 0, NewColumn),
+    nth0(Col, Same, _, OtherSame),
+    nth0(Col, OtherSame, NewColumn, AnotherSame),
+    zero_group(AnotherSame, T, NewSame), !.
 
 %% grupo(+Same, +P, -Group) is semidet
 %
@@ -101,10 +108,9 @@ same_color_neighbors(Same,P,N) :-
 same_color_neighbors_list(Same,P,Vs,Ns) :-
     findall(N,(same_color_neighbors(Same,P,N),\+member(N,Vs)), Ns).  
 
-color(Same,pos(Row, Col),Color) :-
-    nth0(Col, Same, Column),
-    nth0(Row, Column, _, OtherColumn)
-    nth0(Row, COlumn, ).
+color(Same,pos(X,Y),Color) :-
+    nth0(Y,Same,Column),
+    nth0(X,Column,Color).
 
 %left right
 neighbors(pos(X0,Y0), pos(X1,Y1)):-
