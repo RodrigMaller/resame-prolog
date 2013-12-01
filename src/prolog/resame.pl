@@ -38,7 +38,7 @@
 main(File) :-
     read_matriz_file(File, M),
     transpose(M, Same),
-    solve(Same, Moves).
+    solve(Same, Moves),
     writeln(Moves).
 
 %% solve(+Same, -Moves) is nondet
@@ -63,22 +63,24 @@ solve(Same, [M|Moves]) :-
 %  auxiliares.
 
 group(Same, Group) :-
-    color(Same, pos(X, Y), Color),
+    color(Same, pos(X, Y), _),
     group(Same, pos(X, Y), NewGroup),
+    write(NewGroup),
     zero_group(Same, Group, NewSame),
+    write(NewSame),
     length(NewGroup, NumPosGroup),
     NumPosGroup > 1,
     Group = NewGroup,
     
 
-zero_group(Same, [], Same).
+zero_group(_, [], _).
 
 zero_group(Same, [pos(Col, Row) | T], NewSame) :-
     nth0(Col, Same, Column),
-    nth0(Row, Column, _, Other),
-    nth0(Row, OtherColumn, 0, NewColumn),
+    nth0(Row, Column, _, OtherColumn),
+    nth0(Row, NewColumn, 0, OtherColumn),
     nth0(Col, Same, _, OtherSame),
-    nth0(Col, OtherSame, NewColumn, AnotherSame),
+    nth0(Col, AnotherSame, NewColumn, OtherSame),
     zero_group(AnotherSame, T, NewSame), !.
 
 %% grupo(+Same, +P, -Group) is semidet
@@ -145,24 +147,30 @@ remove_group(Same, Group, NewSame) :-
 %  Verdadeiro se NewSame é obtido de Same removendo os elementos
 %  especificados em Group e que estão na Column.
 
-remove_column_group(Same, -1, _, []).
+remove_column_group(_, -1, _, []).
 
 remove_column_group(Same, Col, Group, NewSame) :-
     findall(X, member(pos(X, Col),  Group), ListRow),
     nth0(Col, Same, Column),
-    remove_rows_column(Column, ListRow, NewColumn),
+    dec_sort(ListRow, DecListRow),
+    remove_rows_column(Column, DecListRow, NewColumn),
     NewColumn = [],
     NextCol is Col -1,
-    remove_column_group(Same, Nextcol, Group, NewSame), !.
+    remove_column_group(Same, NextCol, Group, NewSame), !.
 
 remove_column_group(Same, Col, Group, [HeadColumn | RestColumn]) :-
     findall(X, member(pos(X, Col), Group), ListRow),
     nth0(Col, Same, Column),
-    remove_rows_column(Column, ListRow, NewColumn),
+    dec_sort(ListRow, DecListRow),
+    remove_rows_column(Column, DecListRow, NewColumn),
     NewColumn \= [],
     [HeadColumn | _] = [NewColumn],
     NextCol is Col - 1,
     remove_column_group(Same, NextCol, Group, RestColumn), !.
+
+dec_sort(List, DecList) :-
+    sort(List, SortedList),
+    reverse(SortedList, DecList).
 
 %% remove_rows_column(+Column, +Rows, -NewColumn) is semidet
 %
