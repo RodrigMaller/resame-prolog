@@ -39,51 +39,77 @@ main(File) :-
     read_matriz_file(File, M),
     transpose(M, Same),
     solve(Same, Moves),
+    last(Same, Column),
+    length(Column, ColumnsRealSize),
+    length(Same, SameRealSize),
+    sim(Same, SameRealSize, ColumnsRealSize, Moves),
     print(Same, Moves).
-    
-print(Same, [pos(X, Y) | Moves]) :-
-    write(X),
-    write(' '), 
-    write(Y),
-    write('\n'),
-    write('\n'),
+   
+sim([], _, _, []).
+sim(Same, SameRealSize, ColumnsRealSize, [pos(X, Y) | Moves]) :-
     group(Same, pos(X, Y), Group),
-    ColumnsRealSize = length(last(Same, X)),
-    SameRealSize = length(Same),
     remove_group(Same, Group, NewSame),
     zero_same(NewSame, SameRealSize, ColumnsRealSize, ZeroSame),
-    write_matrix(ZeroSame),
-    write('\n'),
-    write('\n'),
-    print(NewSame, Moves).
+    transpose(ZeroSame, MatrixSame),
+    print(MatrixSame, pos(X, Y)),
+    sim(NewSame, SameRealSize, ColumnsRealSize, Moves), !.
+    
+
+%% print(+Same, +Moves) is det
+%
+%  Escreve na tela cada Move realizado e como o Same fica depois desse Move.
+
+print(_, []).
+print(Same, pos(X, Y)) :-
+    write(X), put_char(' '), write(Y),
+    put_char('\n'),
+    put_char('\n'),
+    write_matrix(Same),
+    put_char('\n').
+
+%% zero_same(+Same, +SameRealSize, +ColumnsRealSize, -ZeroSame) is det
+%
+%  Verdadeiro se ZeroSame é o Same com as linhas e colunas completas com zeros.
     
 zero_same(Same, SameRealSize, ColumnsRealSize, ZeroSame) :-
-    zero_rows_same(Same, 0, ColumnsRealSize, NewSame),
+    zero_rows_same(Same, ColumnsRealSize, NewSame),
     length(Same, SameSize),
-    zero_columns_same(NewSame, SameSize, SameRealSize, ColumnsRealSize, ZeroSame).
+    ExSize is SameRealSize - SameSize,
+    zero_column(ColumnsRealSize, ZeroColumn),
+    zero_columns_same(ExSize, ZeroColumn, ZeroColumns),
+    append(NewSame, ZeroColumns, ZeroSame).
 
-zero_rows_same(Same, X, Y, Same) :-
-    X == Y - 1.  
-zero_rows_same([Column | OtherColumns], Col, ColumnsRealSize, ZeroSame) :-
+%% zero_columns_same(+ExSize, +ZeroColumn, ?ZeroColumns) is semidet
+%
+%  Verdadeiro se ZeroColumns é uma lista de colunas zeradas de tamanho ExSize.
+
+zero_columns_same(0, _, []).
+zero_columns_same(ExSize, ZeroColumn, [H | T]) :-
+    H = ZeroColumn,
+    NewExSize is ExSize - 1,
+    zero_columns_same(NewExSize, ZeroColumn, T), !.
+
+%% zero_column(+NumZeros, ?ZeroColumn) is semidet
+%
+%  Verdadeiro se ZeroColumn é uma coluna de zeros de tamanho NumZeros.
+    
+zero_column(0, []).
+zero_column(NumZeros, [H | T]) :-
+    H is 0,
+    NewNumZeros is NumZeros - 1,
+    zero_column(NewNumZeros, T), !.  
+
+%% zero_rows_same(?Same, +ColumnsRealSize, ?NewSame) is semidet
+%
+%  Verdadeiro se NewSame é um novo same com as linhas completadas com zeros.
+
+zero_rows_same([], _, _).
+zero_rows_same([Column | OtherColumns], ColumnsRealSize, [NewColumn | OtherNewColumns]) :-
     length(Column, ColSize),
-    zero_rows_column(Column, ColSize, ColumnsRealSize, NewColumn),
-    nth0(Col, [Column | OtherColumns], _, NewSame),
-    nth0(Col, ZeroSame, NewColumn, NewSame),
-    zero_rows_same(OtherColumns, ColumnsRealSize, ZeroSame).
-    
-zero_rows_column(Column, X, X, Column).
-zero_rows_column(Column, ColSize, ColumnsRealSize, NewColumn) :-
-    append(Column, [0], OtherColumn),
-    NewColSize is ColSize + 1,
-    zero_rows_column(OtherColumn, NewColSize, ColumnsRealSize, NewColumn).
-
-zero_columns_same(Same, X, X, _, Same).
-zero_columns_same(Same, SameSize, SameRealSize, ColumnsRealSize, ZeroSame) :-
-    zero_rows_column([], 0, ColumnsRealSize, ZeroColumn),
-    append(Same, ZeroColumn, OtherSame),
-    NewSameSize is SameSize + 1,
-    zero_columns_same(OtherSame, NewSameSize, SameRealSize, ColumnsRealSize, ZeroSame).
-    
+    ExColSize is ColumnsRealSize - ColSize,
+    zero_column(ExColSize, ZeroColumn),
+    append(Column, ZeroColumn, NewColumn),
+    zero_rows_same(OtherColumns, ColumnsRealSize, OtherNewColumns), !.
 
 %% solve(+Same, -Moves) is nondet
 %
@@ -110,6 +136,10 @@ group(Same, Group) :-
     findall(pos(X, Y), valid_pos(Same, pos(X, Y)), AllValidPos),
     all_groups(Same, AllValidPos, AllGroups),
     member(Group, AllGroups).
+
+%% all_groups(+Same, ?AllValidPos, -AllGroups) is semidet
+%
+%  Verdadeiro se AllGroups é uma lista com todos grupos possíveis de Same
     
 all_groups(_, [], []).
 
@@ -120,9 +150,22 @@ all_groups(Same, [pos(X, Y) | T], [NewGroup | OtherGroups]) :-
     subtract_list(T, NewGroup, NewValids),
     %writeln(NewValids),
     all_groups(Same, NewValids, OtherGroups).
-    
+   
+%% subtract_list(+List1, +List2, -ListResp) is semidet
+%
+%  Verdadeiro se ListResp é a List1 menos a List2.
+
+subtract_list([], List, List).
+
+subtract_list(List, [], List).
+ 
 subtract_list(List1, List2, ListResp) :-
     findall(N, (member(N, List1), not(member(N, List2))), ListResp).
+  
+%% valid_pos(+Same, ?Pos) is nondet
+%
+%  Verdadeiro se Pos é uma posição valida dentro de Same. Gera todas
+%  posições validas de Same.
     
 valid_pos(Same, pos(X, Y)) :-
     color(Same, pos(X, Y), Color),
@@ -135,45 +178,71 @@ valid_pos(Same, pos(X, Y)) :-
 %  Verdadeiro se Group Ã© um grupo de Same que contÃ©m a posiÃ§Ã£o P.
 
 group(Same, P, Group) :-
-    Vs = [P],
-    nhood(Same,Vs,Vs,SubGroup),
+    nhood(Same, [P], [P], SubGroup),
     SubGroup \== [],
-    append(Vs,SubGroup,Group).
+    append([P], SubGroup, Group).
+   
+%% nhood(+Same, +ListToVisitPos, ?ListVisitedPos, -Group) is semidet
+%
+%  Verdadeiro se Group é um grupo de Same da vizinhança ListToVisitPos.
     
 nhood(_, [], _, []).
 
-nhood(Same,[P|T],Vs,Group) :-
+nhood(Same, [P | T], Vs, Group) :-
     same_color_neighbors_list(Same,P,Vs,Ns),
-    append(Vs,Ns,NewVs),    
-    append(T,Ns,NewT),
-    nhood(Same,NewT,NewVs,SubGroup),
-    append(Ns,SubGroup,Group).
+    append(Vs, Ns, NewVs),    
+    append(T, Ns, NewT),
+    nhood(Same, NewT, NewVs, SubGroup),
+    append(Ns, SubGroup, Group).
 
-same_color_neighbors(Same,P,N) :-
-    neighbors(P,N),
-    color(Same,P,C),
-    color(Same,N,C).
+%% same_color_neighbors(+Same, +P, ?N) is nondet
+%
+%  Verdadeiro se N é Vizinho e tem a mesma cor de P. Gera todos vizinhos
+%  de mesma cor N de P.
 
-same_color_neighbors_list(Same,P,Vs,Ns) :-
-    findall(N,(same_color_neighbors(Same,P,N),not(member(N,Vs))), Ns).  
+same_color_neighbors(Same, P, N) :-
+    neighbors(P, N),
+    color(Same, P, C),
+    color(Same, N, C).
 
-color(Same,pos(X,Y),Color) :-
-    nth0(Y,Same,Column),
-    nth0(X,Column,Color).
+%% same_color_neighbors_list(+Same, +P, +Vs, -Ns) is semidet
+%
+%  Verdadeiro se Ns é a lista de vizinhos de mesma cor de P que
+%  não são membros de Vs.
+
+same_color_neighbors_list(Same, P, Vs, Ns) :-
+    findall(N, (same_color_neighbors(Same, P, N), not(member(N, Vs))), Ns).
+
+%% color(+Same, +Pos, ?Color) is semidet
+%
+%  Verdadeiro se Color é a cor de Pos no Same. Devolve a cor Color de Pos.
+
+color(Same, pos(X, Y), Color) :-
+    nth0(Y, Same, Column),
+    nth0(X, Column, Color).
+
+%% neighbors(+Pos, ?Vizinho) is semidet
+%
+%  Verdadeiro se Vizinho é um vizinho de Pos. Devolve um Vizinho de Pos.
 
 %left right
-neighbors(pos(X0,Y0), pos(X1,Y1)):-
-    neighborsXY(X0,X1),
+neighbors(pos(X0, Y0), pos(X1, Y1)):-
+    neighborsXY(X0, X1),
     Y0 = Y1.
 
 %up down
-neighbors(pos(X0,Y0),pos(X1,Y1)):-
+neighbors(pos(X0, Y0), pos(X1, Y1)):-
     X0 = X1,    
-    neighborsXY(Y0,Y1).    
+    neighborsXY(Y0, Y1).    
 
-neighborsXY(C0,C1):-
-    C1 is C0 -1; %down and left
-    C1 is C0 +1. %up and right
+%% neighborsXY(+C0, -C1) is det
+%
+%  Verdadeiro se C1 é uma unidade menor ou maior que C0. Devolve C1 igual a
+%  C0 + 1 ou C0 - 1.
+
+neighborsXY(C0, C1):-
+    C1 is C0 - 1; %down and left
+    C1 is C0 + 1. %up and right
 
 %% remove_group(+Same, +Group, -NewSame) is semidet
 %
@@ -213,6 +282,11 @@ remove_column_group(Same, Col, Group, [NewColumn | RestColumn]) :-
     NewColumn \= [],
     NextCol is Col - 1,
     remove_column_group(Same, NextCol, Group, RestColumn), !.
+
+%% dec_sort(+List, -DecList) is det
+%
+%  Verdadeiro se DecList é a List ordenada em ordem decrescente. Devolve DecList
+%  igual a List ordenada em ordem decrescente.
 
 dec_sort(List, DecList) :-
     sort(List, SortedList),
