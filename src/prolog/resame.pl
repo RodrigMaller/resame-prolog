@@ -39,7 +39,51 @@ main(File) :-
     read_matriz_file(File, M),
     transpose(M, Same),
     solve(Same, Moves),
-    writeln(Moves).
+    print(Same, Moves).
+    
+print(Same, [pos(X, Y) | Moves]) :-
+    write(X),
+    write(' '), 
+    write(Y),
+    write('\n'),
+    write('\n'),
+    group(Same, pos(X, Y), Group),
+    ColumnsRealSize = length(last(Same, X)),
+    SameRealSize = length(Same),
+    remove_group(Same, Group, NewSame),
+    zero_same(NewSame, SameRealSize, ColumnsRealSize, ZeroSame),
+    write_matrix(ZeroSame),
+    write('\n'),
+    write('\n'),
+    print(NewSame, Moves).
+    
+zero_same(Same, SameRealSize, ColumnsRealSize, ZeroSame) :-
+    zero_rows_same(Same, 0, ColumnsRealSize, NewSame),
+    length(Same, SameSize),
+    zero_columns_same(NewSame, SameSize, SameRealSize, ColumnsRealSize, ZeroSame).
+
+zero_rows_same(Same, X, Y, Same) :-
+    X == Y - 1.  
+zero_rows_same([Column | OtherColumns], Col, ColumnsRealSize, ZeroSame) :-
+    length(Column, ColSize),
+    zero_rows_column(Column, ColSize, ColumnsRealSize, NewColumn),
+    nth0(Col, [Column | OtherColumns], _, NewSame),
+    nth0(Col, ZeroSame, NewColumn, NewSame),
+    zero_rows_same(OtherColumns, ColumnsRealSize, ZeroSame).
+    
+zero_rows_column(Column, X, X, Column).
+zero_rows_column(Column, ColSize, ColumnsRealSize, NewColumn) :-
+    append(Column, [0], OtherColumn),
+    NewColSize is ColSize + 1,
+    zero_rows_column(OtherColumn, NewColSize, ColumnsRealSize, NewColumn).
+
+zero_columns_same(Same, X, X, _, Same).
+zero_columns_same(Same, SameSize, SameRealSize, ColumnsRealSize, ZeroSame) :-
+    zero_rows_column([], 0, ColumnsRealSize, ZeroColumn),
+    append(Same, ZeroColumn, OtherSame),
+    NewSameSize is SameSize + 1,
+    zero_columns_same(OtherSame, NewSameSize, SameRealSize, ColumnsRealSize, ZeroSame).
+    
 
 %% solve(+Same, -Moves) is nondet
 %
@@ -48,11 +92,11 @@ main(File) :-
 %  Este predicado não tem teste de unidade. Ele é testado pelo testador.
 
 solve([], []).
-solve(Same, [M|Moves]) :-
+solve(Same, [M | Moves]) :-
     group(Same, Group),
     remove_group(Same, Group, NewSame),
-    [M|_] = Group,
-    solve(NewSame, Moves).
+    [M | _] = Group,
+    solve(NewSame, Moves), !.
 
 %% group(+Same, ?Group) is nondet
 %
@@ -63,25 +107,28 @@ solve(Same, [M|Moves]) :-
 %  auxiliares.
 
 group(Same, Group) :-
-    color(Same, pos(X, Y), _),
-    group(Same, pos(X, Y), NewGroup),
-    write(NewGroup),
-    zero_group(Same, Group, NewSame),
-    write(NewSame),
-    length(NewGroup, NumPosGroup),
-    NumPosGroup > 1,
-    Group = NewGroup,
+    findall(pos(X, Y), valid_pos(Same, pos(X, Y)), AllValidPos),
+    all_groups(Same, AllValidPos, AllGroups),
+    member(Group, AllGroups).
     
+all_groups(_, [], []).
 
-zero_group(_, [], _).
-
-zero_group(Same, [pos(Col, Row) | T], NewSame) :-
-    nth0(Col, Same, Column),
-    nth0(Row, Column, _, OtherColumn),
-    nth0(Row, NewColumn, 0, OtherColumn),
-    nth0(Col, Same, _, OtherSame),
-    nth0(Col, AnotherSame, NewColumn, OtherSame),
-    zero_group(AnotherSame, T, NewSame), !.
+all_groups(Same, [pos(X, Y) | T], [NewGroup | OtherGroups]) :-
+    %writeln(T),
+    group(Same, pos(X, Y), NewGroup),
+    %writeln(NewGroup),
+    subtract_list(T, NewGroup, NewValids),
+    %writeln(NewValids),
+    all_groups(Same, NewValids, OtherGroups).
+    
+subtract_list(List1, List2, ListResp) :-
+    findall(N, (member(N, List1), not(member(N, List2))), ListResp).
+    
+valid_pos(Same, pos(X, Y)) :-
+    color(Same, pos(X, Y), Color),
+    Color \= 0,
+    same_color_neighbors_list(Same, pos(X, Y), [], Ns),
+    Ns \= [].
 
 %% grupo(+Same, +P, -Group) is semidet
 %
@@ -108,7 +155,7 @@ same_color_neighbors(Same,P,N) :-
     color(Same,N,C).
 
 same_color_neighbors_list(Same,P,Vs,Ns) :-
-    findall(N,(same_color_neighbors(Same,P,N),\+member(N,Vs)), Ns).  
+    findall(N,(same_color_neighbors(Same,P,N),not(member(N,Vs))), Ns).  
 
 color(Same,pos(X,Y),Color) :-
     nth0(Y,Same,Column),
@@ -158,13 +205,12 @@ remove_column_group(Same, Col, Group, NewSame) :-
     NextCol is Col -1,
     remove_column_group(Same, NextCol, Group, NewSame), !.
 
-remove_column_group(Same, Col, Group, [HeadColumn | RestColumn]) :-
+remove_column_group(Same, Col, Group, [NewColumn | RestColumn]) :-
     findall(X, member(pos(X, Col), Group), ListRow),
     nth0(Col, Same, Column),
     dec_sort(ListRow, DecListRow),
     remove_rows_column(Column, DecListRow, NewColumn),
     NewColumn \= [],
-    [HeadColumn | _] = [NewColumn],
     NextCol is Col - 1,
     remove_column_group(Same, NextCol, Group, RestColumn), !.
 
