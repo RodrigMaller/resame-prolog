@@ -63,44 +63,16 @@ solve(Same, [M|Moves]) :-
 %  auxiliares.
 
 group(Same, Group) :-
-    length(Same, NumLin).
+    color(Same, pos(X, Y), Color),
+    group(Same, pos(X, Y), NewGroup),
+    zero_group(Same, Group, NewSame),
+    length(NewGroup, NumPosGroup),
+    NumPosGroup > 1,
+    Group = NewGroup.
 
-
-neighborsXY(C0,C1):-
-    C1 is C0 -1; %down and left
-    C1 is C0 +1. %up and right
-
-%left right
-neighbors(pos(X0,Y0), pos(X1,Y1)):-
-    neighborsXY(X0,X1),
-    Y0 = Y1.
-
-%up down
-neighbors(pos(X0,Y0),pos(X1,Y1)):-
-    X0 = X1,    
-    neighborsXY(Y0,Y1).
-
-color(Same,pos(X,Y),Color) :-
-    nth0(Y,Same,Column),
-    nth0(X,Column,Color).
-
-same_color_neighbors(Same,P,N) :-
-    neighbors(P,N),
-    color(Same,P,C),
-    color(Same,N,C).
-
-
-same_color_neighbors_list(Same,P,Vs,Ns) :-
-    findall(N,(same_color_neighbors(Same,P,N),\+member(N,Vs)), Ns).
-
-nhood(_, [], _, []).
-
-nhood(Same,[P|T],Vs,Group) :-
-    same_color_neighbors_list(Same,P,Vs,Ns),
-    append(Vs,Ns,NewVs),    
-    append(T,Ns,NewT),
-    nhood(Same,NewT,NewVs,SubGroup),
-    append(Ns,SubGroup,Group).
+zero_group(Same, [pos(X, Y) | T], NewSame) :-
+    nth0(Y, Same, Column),
+    nth0(X, Column, Color)
 
 %% grupo(+Same, +P, -Group) is semidet
 %
@@ -112,10 +84,41 @@ group(Same, P, Group) :-
     SubGroup \== [],
     append(Vs,SubGroup,Group).
     
-    
-%    findall(N,(same_color_neighbors(Same,P,N)), Pneighbors),
- %   neighborhood(Same,Gx),
-  %  Group = Gx.o
+nhood(_, [], _, []).
+
+nhood(Same,[P|T],Vs,Group) :-
+    same_color_neighbors_list(Same,P,Vs,Ns),
+    append(Vs,Ns,NewVs),    
+    append(T,Ns,NewT),
+    nhood(Same,NewT,NewVs,SubGroup),
+    append(Ns,SubGroup,Group).
+
+same_color_neighbors(Same,P,N) :-
+    neighbors(P,N),
+    color(Same,P,C),
+    color(Same,N,C).
+
+same_color_neighbors_list(Same,P,Vs,Ns) :-
+    findall(N,(same_color_neighbors(Same,P,N),\+member(N,Vs)), Ns).  
+
+color(Same,pos(Row, Col),Color) :-
+    nth0(Col, Same, Column),
+    nth0(Row, Column, _, OtherColumn)
+    nth0(Row, COlumn, ).
+
+%left right
+neighbors(pos(X0,Y0), pos(X1,Y1)):-
+    neighborsXY(X0,X1),
+    Y0 = Y1.
+
+%up down
+neighbors(pos(X0,Y0),pos(X1,Y1)):-
+    X0 = X1,    
+    neighborsXY(Y0,Y1).    
+
+neighborsXY(C0,C1):-
+    C1 is C0 -1; %down and left
+    C1 is C0 +1. %up and right
 
 %% remove_group(+Same, +Group, -NewSame) is semidet
 %

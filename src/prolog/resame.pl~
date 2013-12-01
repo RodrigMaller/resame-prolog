@@ -63,12 +63,42 @@ solve(Same, [M|Moves]) :-
 %  auxiliares.
 
 group(Same, Group) :-
-    length(Same, NumLin).
+    %color(Same, pos(X, Y), Color),
+    group(Same, pos(1, 1), NewGroup),
+    length(NewGroup, NumPosGroup),
+    NumPosGroup > 1,
+    Group = NewGroup.
 
+%% grupo(+Same, +P, -Group) is semidet
+%
+%  Verdadeiro se Group é um grupo de Same que contém a posição P.
 
-neighborsXY(C0,C1):-
-    C1 is C0 -1; %down and left
-    C1 is C0 +1. %up and right
+group(Same, P, Group) :-
+    Vs = [P],
+    nhood(Same,Vs,Vs,SubGroup),
+    SubGroup \== [],
+    append(Vs,SubGroup,Group).
+    
+nhood(_, [], _, []).
+
+nhood(Same,[P|T],Vs,Group) :-
+    same_color_neighbors_list(Same,P,Vs,Ns),
+    append(Vs,Ns,NewVs),    
+    append(T,Ns,NewT),
+    nhood(Same,NewT,NewVs,SubGroup),
+    append(Ns,SubGroup,Group).
+
+same_color_neighbors(Same,P,N) :-
+    neighbors(P,N),
+    color(Same,P,C),
+    color(Same,N,C).
+
+same_color_neighbors_list(Same,P,Vs,Ns) :-
+    findall(N,(same_color_neighbors(Same,P,N),\+member(N,Vs)), Ns).  
+
+color(Same,pos(X,Y),Color) :-
+    nth0(Y,Same,Column),
+    nth0(X,Column,Color).
 
 %left right
 neighbors(pos(X0,Y0), pos(X1,Y1)):-
@@ -78,28 +108,11 @@ neighbors(pos(X0,Y0), pos(X1,Y1)):-
 %up down
 neighbors(pos(X0,Y0),pos(X1,Y1)):-
     X0 = X1,    
-    neighborsXY(Y0,Y1).
+    neighborsXY(Y0,Y1).    
 
-color(Same,pos(X,Y),Color) :-
-    nth0(Y,Same,Column),
-    nth0(X,Column,Color).
-
-same_color_neighbors(Same,P,N) :-
-    neighbors(P,N),
-    color(Same,P,C),
-    color(Same,N,C).
-
-neighborhood(Same,Ns,N) :-    
-    map(Ns,Ns0).
-
-%% grupo(+Same, +P, -Group) is semidet
-%
-%  Verdadeiro se Group é um grupo de Same que contém a posição P.
-
-group(Same, P, Group) :-
-    findall(N,(same_color_neighbors(Same,P,N)), Pneighbors),
-    neighborhood(Same,Pneighbors,Gx),
-    Group = Gx.
+neighborsXY(C0,C1):-
+    C1 is C0 -1; %down and left
+    C1 is C0 +1. %up and right
 
 %% remove_group(+Same, +Group, -NewSame) is semidet
 %
@@ -149,4 +162,5 @@ remove_rows_column(Column, [], Column).
 remove_rows_column(Column, [Row | Rest], NewColumn) :-
     nth0(Row, Column, _, OtherColumn),
     remove_rows_column(OtherColumn, Rest, NewColumn), !.
+
 
