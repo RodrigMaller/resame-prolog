@@ -36,14 +36,17 @@
 %  ou sem-solucao se o jogo n√£o tem solu√ß√£o.
 
 main(File) :-
-    read_matriz_file(File, M),
+    read_matrix_file(File, M),
     transpose(M, Same),
     solve(Same, Moves),
     last(Same, Column),
     length(Column, ColumnsRealSize),
     length(Same, SameRealSize),
-    sim(Same, SameRealSize, ColumnsRealSize, Moves),
-    print(Same, Moves).
+    sim(Same, SameRealSize, ColumnsRealSize, Moves).
+
+%% sim(?Same, +SameRealSize, +ColumnsRealSize, ?Moves) is det
+%
+%  Simula a resoluÁ„o do jogo passo a passo e imprime.
    
 sim([], _, _, []).
 sim(Same, SameRealSize, ColumnsRealSize, [pos(X, Y) | Moves]) :-
@@ -62,10 +65,9 @@ sim(Same, SameRealSize, ColumnsRealSize, [pos(X, Y) | Moves]) :-
 print(_, []).
 print(Same, pos(X, Y)) :-
     write(X), put_char(' '), write(Y),
-    put_char('\n'),
-    put_char('\n'),
+    writeln('\n'),
     write_matrix(Same),
-    put_char('\n').
+    write('\n').
 
 %% zero_same(+Same, +SameRealSize, +ColumnsRealSize, -ZeroSame) is det
 %
